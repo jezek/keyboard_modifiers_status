@@ -198,8 +198,8 @@ export default class KMS extends Extension {
     }
 
 
-		// The first parameter (seatObject) is the Clutter.Seat instance that emitted the signal. It's passed automatically by the GObject signal connection.
-    _a11y_mods_update(seatObject, latch_new, lock_new) {
+                // The callback receives the Clutter.Seat that emitted the signal.
+    _a11y_mods_update(_seat, latch_new, lock_new) {
         console.debug(`${tag} _a11y_mods_update() ... in`);
         if (typeof latch_new !== 'undefined') {
             this.latch = latch_new;
