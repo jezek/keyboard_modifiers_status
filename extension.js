@@ -26,12 +26,9 @@ import GLib from 'gi://GLib';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-//
-const dbg = false;
-
-//TODO: convert into preferrence.
 const tag = "KMS-Ext:";
 
+//TODO: convert into preferrence.
 // Mapping of modifier masks to the displayed symbol
 const MODIFIERS = [
     [Clutter.ModifierType.SHIFT_MASK, '⇧'],
@@ -43,7 +40,6 @@ const MODIFIERS = [
     [Clutter.ModifierType.MOD4_MASK, '⌘'],
     [Clutter.ModifierType.MOD5_MASK, '⎇'],
 ];
-
 const latch_sym = "'";
 const lock_sym = "◦";
 const icon = ""; //"⌨ ";
@@ -52,8 +48,7 @@ const closing = ""; //"_";
 
 
 // Gnome-shell extension interface
-// init, enable, disable
-
+// constructor, enable, disable
 export default class KMS extends Extension {
 
     seat = null;
@@ -203,9 +198,9 @@ export default class KMS extends Extension {
     }
 
 
-    _a11y_mods_update(o, latch_new, lock_new) {
+		// The first parameter (seatObject) is the Clutter.Seat instance that emitted the signal. It's passed automatically by the GObject signal connection.
+    _a11y_mods_update(seatObject, latch_new, lock_new) {
         console.debug(`${tag} _a11y_mods_update() ... in`);
-        //TODO: search what's the 1st parameter
         if (typeof latch_new !== 'undefined') {
             this.latch = latch_new;
         };
