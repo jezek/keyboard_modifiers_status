@@ -70,8 +70,8 @@ export default class KMS extends Extension {
 
     indicator = null;
 
-    timeout_id = null;
     mods_update_id = null;
+    keySignal = null;
 
 
     constructor(metadata) {
@@ -97,8 +97,8 @@ export default class KMS extends Extension {
 
         this.indicator = null;
 
-        this.timeout_id = null;
         this.mods_update_id = null;
+        this.keySignal = null;
 
         // Create UI elements
         this.button = new St.Bin({ style_class: 'panel-button',
@@ -123,7 +123,16 @@ export default class KMS extends Extension {
         };
 
         Main.panel._rightBox.insert_child_at_index(this.button, 0);
-        this.timeout_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, this._update.bind(this));
+
+        // Instead of running `_update` at constant intervals, run it only on key up/down events.
+        // `global` is provided by GNOME Shell and exposes Meta.Display APIs.
+        // See GNOME Shell architecture overview:
+        // https://gjs.guide/extensions/overview/architecture.html#shell
+        this.keySignal = global.stage.connect(
+            'captured-event',
+            this._onCapturedEvent.bind(this)
+        );
+        this._update();
 
         console.debug(`${tag} enable() ... out`);
     }
@@ -134,7 +143,10 @@ export default class KMS extends Extension {
 
         Main.panel._rightBox.remove_child(this.button);
 
-        GLib.source_remove(this.timeout_id);
+        if (this.keySignal) {
+            global.stage.disconnect(this.keySignal);
+        }
+
 
         if (this.seat && this.mods_update_id) {
             this.seat.disconnect(this.mods_update_id);
@@ -156,8 +168,8 @@ export default class KMS extends Extension {
 
         this.indicator = null;
 
-        this.timeout_id = null;
         this.mods_update_id = null;
+        this.keySignal = null;
 
         console.debug(`${tag} disable() ... out`);
     }
@@ -165,9 +177,6 @@ export default class KMS extends Extension {
     //
     _update() {
         console.debug(`${tag} _update() ... in`);
-        // `global` is provided by GNOME Shell and exposes Meta.Display APIs.
-        // See GNOME Shell architecture overview:
-        // https://gjs.guide/extensions/overview/architecture.html#shell
         //Note: modifiers state from get_pointer is the base not the effective
         // On latch active, it is on too. but on lock active, it is off
         // Not the case, using Gdk.Keymap.get_default().get_modifier_state() which
@@ -178,6 +187,10 @@ export default class KMS extends Extension {
         if (typeof m !== 'undefined') {
             this.state = m;
         };
+
+        console.debug(`${tag} pointer state: ${this.state}`);
+        console.debug(`${tag} latch: ${this.latch}`);
+        console.debug(`${tag} lock: ${this.lock}`);
 
         if ((this.state != this.prev_state) || this.latch != this.prev_latch || this.lock != this.prev_lock) {
             console.debug(`${tag} State changed... ${this.prev_state}, ${this.state}`);
@@ -201,8 +214,23 @@ export default class KMS extends Extension {
         }
 
         console.debug(`${tag} _update() ... out`);
-        //return true;
-        return GLib.SOURCE_CONTINUE;
+    }
+
+    _onCapturedEvent(_actor, event) {
+        //console.debug(`${tag} _onCapturedEvent() ... in`);
+        const type = event.type();
+        if (type === Clutter.EventType.KEY_PRESS || type === Clutter.EventType.KEY_RELEASE) {
+            //this.state = event.get_state();
+            console.debug(`${tag} key state: ${event.get_state()}`);
+            //let pressed = 0;
+            //let latched = 0;
+            //let locked = 0;
+            //event.get_key_state(&pressed, &latched, &locked);
+            //console.debug(`${tag} key state (pr, la, lo): ${pressed}, ${latched}, ${locked}`);
+            this._update();
+        }
+        //console.debug(`${tag} _onCapturedEvent() ... out`);
+        return Clutter.EVENT_PROPAGATE;
     }
 
 
@@ -216,6 +244,7 @@ export default class KMS extends Extension {
             this.lock = lock_new;
         };
         console.debug(`${tag} latch: ${this.latch}, lock: ${this.lock}`);
+        this._update();
         console.debug(`${tag} _a11y_mods_update() ... out`);
         //return true;
         return GLib.SOURCE_CONTINUE;
