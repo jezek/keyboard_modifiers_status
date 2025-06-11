@@ -27,6 +27,9 @@ import GLib from 'gi://GLib';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const tag = "KMS-Ext:";
+const Config = imports.misc.config;
+console.debug(`${tag} Shell version: ${Config.PACKAGE_VERSION}`);
+console.debug(`${tag} Clutter version: ${Clutter.MAJOR_VERSION}.${Clutter.MINOR_VERSION}`);
 
 //TODO: convert into preferrence.
 // Mapping of modifier masks to the displayed symbol
