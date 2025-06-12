@@ -1,10 +1,11 @@
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
-import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
+import {ExtensionPreferences} from 'resource:///org/gnome/shell/extensions/prefs.js';
 
-export default class Prefs {
-    constructor() {
-        this.settings = ExtensionUtils.getSettings();
+export default class Prefs extends ExtensionPreferences {
+    constructor(metadata) {
+        super(metadata);
+        this.settings = this.getSettings();
     }
 
     fillPreferencesWindow(window) {

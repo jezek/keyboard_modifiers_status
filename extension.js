@@ -101,7 +101,7 @@ export default class KMS extends Extension {
         this.timeout_id = null;
         this.mods_update_id = null;
 
-        const settings = ExtensionUtils.getSettings();
+        const settings = this.getSettings();
         MODIFIERS = [];
         for (const item of settings.get_strv('modifier-mapping')) {
             const [name, sym] = item.split(':');
