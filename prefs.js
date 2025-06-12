@@ -25,7 +25,7 @@ export default class Prefs extends ExtensionPreferences {
         scrolled.set_child(textView);
 
         const row = new Adw.ActionRow({ title: 'Mappings' });
-        row.add(scrolled);
+        row.set_child(scrolled);
         group.add(row);
         page.add(group);
 
@@ -48,7 +48,7 @@ export default class Prefs extends ExtensionPreferences {
         addEntry('closing', 'Closing');
 
         page.add(symbols);
-        window.add(page);
+        window.set_child(page);
         window.show();
     }
 }
