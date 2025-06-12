@@ -25,7 +25,7 @@ export default class Prefs extends ExtensionPreferences {
         scrolled.set_child(textView);
 
         const row = new Adw.ActionRow({ title: 'Mappings' });
-        row.add(scrolled);
+        row.add_suffix(scrolled);
         group.add(row);
         page.add(group);
 
