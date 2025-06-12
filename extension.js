@@ -19,6 +19,7 @@
 //
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
 
 //
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -34,23 +35,23 @@ import GIRepository from 'gi://GIRepository';
 console.debug(`${tag} Shell version: ${Config.PACKAGE_VERSION}`);
 console.debug(`${tag} Clutter API: ${GIRepository.Repository.get_default().get_version('Clutter')}`);  
 
-//TODO: convert into preferrence.
-// Mapping of modifier masks to the displayed symbol
-const MODIFIERS = [
-    [Clutter.ModifierType.SHIFT_MASK, '⇧'],
-    [Clutter.ModifierType.LOCK_MASK, '⇬'],
-    [Clutter.ModifierType.CONTROL_MASK, '⋀'],
-    [Clutter.ModifierType.MOD1_MASK, '⌥'],
-    [Clutter.ModifierType.MOD2_MASK, '①'],
-    [Clutter.ModifierType.MOD3_MASK, '◆'],
-    [Clutter.ModifierType.MOD4_MASK, '⌘'],
-    [Clutter.ModifierType.MOD5_MASK, '⎇'],
-];
-const latch_sym = "'";
-const lock_sym = "◦";
-const icon = ""; //"⌨ ";
-const opening = ""; //"_";
-const closing = ""; //"_";
+const MODIFIER_ENUM = {
+    SHIFT: Clutter.ModifierType.SHIFT_MASK,
+    LOCK: Clutter.ModifierType.LOCK_MASK,
+    CONTROL: Clutter.ModifierType.CONTROL_MASK,
+    MOD1: Clutter.ModifierType.MOD1_MASK,
+    MOD2: Clutter.ModifierType.MOD2_MASK,
+    MOD3: Clutter.ModifierType.MOD3_MASK,
+    MOD4: Clutter.ModifierType.MOD4_MASK,
+    MOD5: Clutter.ModifierType.MOD5_MASK,
+};
+
+let MODIFIERS = [];
+let latch_sym = "'";
+let lock_sym = "◦";
+let icon = ""; //"⌨ ";
+let opening = ""; //"_";
+let closing = ""; //"_";
 
 
 // Gnome-shell extension interface
@@ -62,7 +63,7 @@ export default class KMS extends Extension {
     label = null;
 
     state = 0;
-    prev_state = 0;
+    prev_state = null;
     latch = 0;
     prev_latch = 0;
     lock = 0;
@@ -72,6 +73,8 @@ export default class KMS extends Extension {
 
     timeout_id = null;
     mods_update_id = null;
+    settings = null;
+    settingsChangedId = null;
 
 
     constructor(metadata) {
@@ -89,7 +92,7 @@ export default class KMS extends Extension {
         this.label = null;
 
         this.state = 0;
-        this.prev_state = 0;
+        this.prev_state = null;
         this.latch = 0;
         this.prev_latch = 0;
         this.lock = 0;
@@ -99,6 +102,14 @@ export default class KMS extends Extension {
 
         this.timeout_id = null;
         this.mods_update_id = null;
+
+        this.settings = this.getSettings();
+        this._loadSettings();
+        this.settingsChangedId = this.settings.connect('changed', () => {
+            this._loadSettings();
+            // Force indicator refresh on next _update (every 200ms).
+            this.prev_state = null;
+        });
 
         // Create UI elements
         this.button = new St.Bin({ style_class: 'panel-button',
@@ -148,7 +159,7 @@ export default class KMS extends Extension {
         this.label = null;
 
         this.state = 0;
-        this.prev_state = 0;
+        this.prev_state = null;
         this.latch = 0;
         this.prev_latch = 0;
         this.lock = 0;
@@ -158,8 +169,39 @@ export default class KMS extends Extension {
 
         this.timeout_id = null;
         this.mods_update_id = null;
+        if (this.settings && this.settingsChangedId) {
+            this.settings.disconnect(this.settingsChangedId);
+        }
+        this.settings = null;
+        this.settingsChangedId = null;
 
         console.debug(`${tag} disable() ... out`);
+    }
+
+    _loadSettings() {
+        console.debug(`${tag} _loadSettings() ... in`);
+
+        if (!this.settings) {
+            console.warning(`${tag} this.settings is null`);
+            return;
+        }
+        MODIFIERS = [
+            [MODIFIER_ENUM.SHIFT, this.settings.get_string('shift-symbol')],
+            [MODIFIER_ENUM.LOCK, this.settings.get_string('caps-symbol')],
+            [MODIFIER_ENUM.CONTROL, this.settings.get_string('control-symbol')],
+            [MODIFIER_ENUM.MOD1, this.settings.get_string('mod1-symbol')],
+            [MODIFIER_ENUM.MOD2, this.settings.get_string('mod2-symbol')],
+            [MODIFIER_ENUM.MOD3, this.settings.get_string('mod3-symbol')],
+            [MODIFIER_ENUM.MOD4, this.settings.get_string('mod4-symbol')],
+            [MODIFIER_ENUM.MOD5, this.settings.get_string('mod5-symbol')],
+        ];
+        latch_sym = this.settings.get_string('latch-symbol');
+        lock_sym = this.settings.get_string('lock-symbol');
+        icon = this.settings.get_string('icon');
+        opening = this.settings.get_string('opening');
+        closing = this.settings.get_string('closing');
+
+        console.debug(`${tag} _loadSettings() ... out`);
     }
 
     //
@@ -179,8 +221,8 @@ export default class KMS extends Extension {
             this.state = m;
         };
 
-        if ((this.state != this.prev_state) || this.latch != this.prev_latch || this.lock != this.prev_lock) {
-            console.debug(`${tag} State changed... ${this.prev_state}, ${this.state}`);
+        if (this.state != this.prev_state || this.latch != this.prev_latch || this.lock != this.prev_lock) {
+            console.debug(`${tag} State ${this.prev_state}->${this.state}, latch ${this.prev_latch}->${this.latch} or lock ${this.prev_lock}->${this.lock} changed`);
             this.indicator = icon + opening + " ";
             // Iterate using the predefined modifier masks
             for (const [mask, sym] of MODIFIERS) {
