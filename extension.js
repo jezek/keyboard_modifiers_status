@@ -28,23 +28,23 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const tag = "KMS-Ext:";
 
-//TODO: convert into preferrence.
-// Mapping of modifier masks to the displayed symbol
-const MODIFIERS = [
-    [Clutter.ModifierType.SHIFT_MASK, '⇧'],
-    [Clutter.ModifierType.LOCK_MASK, '⇬'],
-    [Clutter.ModifierType.CONTROL_MASK, '⋀'],
-    [Clutter.ModifierType.MOD1_MASK, '⌥'],
-    [Clutter.ModifierType.MOD2_MASK, '①'],
-    [Clutter.ModifierType.MOD3_MASK, '◆'],
-    [Clutter.ModifierType.MOD4_MASK, '⌘'],
-    [Clutter.ModifierType.MOD5_MASK, '⎇'],
-];
-const latch_sym = "'";
-const lock_sym = "◦";
-const icon = ""; //"⌨ ";
-const opening = ""; //"_";
-const closing = ""; //"_";
+const MODIFIER_ENUM = {
+    SHIFT: Clutter.ModifierType.SHIFT_MASK,
+    LOCK: Clutter.ModifierType.LOCK_MASK,
+    CONTROL: Clutter.ModifierType.CONTROL_MASK,
+    MOD1: Clutter.ModifierType.MOD1_MASK,
+    MOD2: Clutter.ModifierType.MOD2_MASK,
+    MOD3: Clutter.ModifierType.MOD3_MASK,
+    MOD4: Clutter.ModifierType.MOD4_MASK,
+    MOD5: Clutter.ModifierType.MOD5_MASK,
+};
+
+let MODIFIERS = [];
+let latch_sym = "'";
+let lock_sym = "◦";
+let icon = ""; //"⌨ ";
+let opening = ""; //"_";
+let closing = ""; //"_";
 
 
 // Gnome-shell extension interface
@@ -93,6 +93,19 @@ export default class KMS extends Extension {
 
         this.timeout_id = null;
         this.mods_update_id = null;
+
+        const settings = this.getSettings();
+        MODIFIERS = [];
+        for (const item of settings.get_strv('modifier-mapping')) {
+            const [name, sym] = item.split(':');
+            if (MODIFIER_ENUM[name])
+                MODIFIERS.push([MODIFIER_ENUM[name], sym]);
+        }
+        latch_sym = settings.get_string('latch-symbol');
+        lock_sym = settings.get_string('lock-symbol');
+        icon = settings.get_string('icon');
+        opening = settings.get_string('opening');
+        closing = settings.get_string('closing');
 
         // Create UI elements
         this.button = new St.Bin({ style_class: 'panel-button',
