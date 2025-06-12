@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.keyboard-modifiers-status" path="/org/gnome/shell/extensions/keyboard-modifiers-status/">
+    <key name="modifier-mapping" type="as">
+      <default>
+        ['SHIFT:⇧', 'LOCK:⇬', 'CONTROL:⋀', 'MOD1:⌥', 'MOD2:①', 'MOD3:◆', 'MOD4:⌘', 'MOD5:⎇']
+      </default>
+      <summary>Modifier symbol mapping</summary>
+      <description>Array mapping modifier names to symbols using NAME:SYMBOL format.</description>
+    </key>
+    <key name="latch-symbol" type="s">
+      <default>'\''</default>
+      <summary>Latch symbol</summary>
+      <description>Symbol displayed when a modifier is latched.</description>
+    </key>
+    <key name="lock-symbol" type="s">
+      <default>'◦'</default>
+      <summary>Lock symbol</summary>
+      <description>Symbol displayed when a modifier is locked.</description>
+    </key>
+    <key name="icon" type="s">
+      <default>''</default>
+      <summary>Prefix icon</summary>
+      <description>Optional symbol shown before the modifier list.</description>
+    </key>
+    <key name="opening" type="s">
+      <default>''</default>
+      <summary>Opening text</summary>
+      <description>String placed before the modifier state display.</description>
+    </key>
+    <key name="closing" type="s">
+      <default>''</default>
+      <summary>Closing text</summary>
+      <description>String placed after the modifier state display.</description>
+    </key>
+  </schema>
+</schemalist>
