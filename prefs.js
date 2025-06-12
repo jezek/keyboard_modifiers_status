@@ -1,6 +1,6 @@
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
-import * as ExtensionUtils from 'resource:///org/gnome/shell/extensions/extensionUtils.js';
+import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
 
 export default class Prefs {
     constructor() {
