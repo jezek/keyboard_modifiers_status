@@ -63,7 +63,7 @@ export default class KMS extends Extension {
     label = null;
 
     state = 0;
-    prev_state = 0;
+    prev_state = null;
     latch = 0;
     prev_latch = 0;
     lock = 0;
@@ -92,7 +92,7 @@ export default class KMS extends Extension {
         this.label = null;
 
         this.state = 0;
-        this.prev_state = 0;
+        this.prev_state = null;
         this.latch = 0;
         this.prev_latch = 0;
         this.lock = 0;
@@ -107,8 +107,8 @@ export default class KMS extends Extension {
         this._loadSettings();
         this.settingsChangedId = this.settings.connect('changed', () => {
             this._loadSettings();
-            // Force immediate refresh
-            this._update();
+            // Force indicator refresh on next _update (every 200ms).
+            this.prev_state = null;
         });
 
         // Create UI elements
@@ -159,7 +159,7 @@ export default class KMS extends Extension {
         this.label = null;
 
         this.state = 0;
-        this.prev_state = 0;
+        this.prev_state = null;
         this.latch = 0;
         this.prev_latch = 0;
         this.lock = 0;
@@ -179,8 +179,12 @@ export default class KMS extends Extension {
     }
 
     _loadSettings() {
-        if (!this.settings)
+        console.debug(`${tag} _loadSettings() ... in`);
+
+        if (!this.settings) {
+            console.warning(`${tag} this.settings is null`);
             return;
+        }
         MODIFIERS = [
             [MODIFIER_ENUM.SHIFT, this.settings.get_string('shift-symbol')],
             [MODIFIER_ENUM.LOCK, this.settings.get_string('caps-symbol')],
@@ -196,6 +200,8 @@ export default class KMS extends Extension {
         icon = this.settings.get_string('icon');
         opening = this.settings.get_string('opening');
         closing = this.settings.get_string('closing');
+
+        console.debug(`${tag} _loadSettings() ... out`);
     }
 
     //
@@ -215,8 +221,8 @@ export default class KMS extends Extension {
             this.state = m;
         };
 
-        if ((this.state != this.prev_state) || this.latch != this.prev_latch || this.lock != this.prev_lock) {
-            console.debug(`${tag} State changed... ${this.prev_state}, ${this.state}`);
+        if (this.state != this.prev_state || this.latch != this.prev_latch || this.lock != this.prev_lock) {
+            console.debug(`${tag} State ${this.prev_state}->${this.state}, latch ${this.prev_latch}->${this.latch} or lock ${this.prev_lock}->${this.lock} changed`);
             this.indicator = icon + opening + " ";
             // Iterate using the predefined modifier masks
             for (const [mask, sym] of MODIFIERS) {
