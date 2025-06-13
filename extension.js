@@ -102,12 +102,16 @@ export default class KMS extends Extension {
         this.mods_update_id = null;
 
         const settings = this.getSettings();
-        MODIFIERS = [];
-        for (const item of settings.get_strv('modifier-mapping')) {
-            const [name, sym] = item.split(':');
-            if (MODIFIER_ENUM[name])
-                MODIFIERS.push([MODIFIER_ENUM[name], sym]);
-        }
+        MODIFIERS = [
+            [MODIFIER_ENUM.SHIFT, settings.get_string('shift-symbol')],
+            [MODIFIER_ENUM.LOCK, settings.get_string('caps-symbol')],
+            [MODIFIER_ENUM.CONTROL, settings.get_string('control-symbol')],
+            [MODIFIER_ENUM.MOD1, settings.get_string('mod1-symbol')],
+            [MODIFIER_ENUM.MOD2, settings.get_string('mod2-symbol')],
+            [MODIFIER_ENUM.MOD3, settings.get_string('mod3-symbol')],
+            [MODIFIER_ENUM.MOD4, settings.get_string('mod4-symbol')],
+            [MODIFIER_ENUM.MOD5, settings.get_string('mod5-symbol')],
+        ];
         latch_sym = settings.get_string('latch-symbol');
         lock_sym = settings.get_string('lock-symbol');
         icon = settings.get_string('icon');
