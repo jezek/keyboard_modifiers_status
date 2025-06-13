@@ -17,6 +17,11 @@ export default class Prefs extends ExtensionPreferences {
             entry.connect('changed', () => {
                 this.settings.set_string(key, entry.text);
             });
+            this.settings.connect(`changed::${key}`, () => {
+                const val = this.settings.get_string(key);
+                if (entry.text !== val)
+                    entry.text = val;
+            });
             entries[key] = entry;
             const row = new Adw.ActionRow({ title });
             row.add_suffix(entry);
@@ -66,6 +71,11 @@ export default class Prefs extends ExtensionPreferences {
             const entry = new Gtk.Entry({ text: this.settings.get_string(key) });
             entry.connect('changed', () => {
                 this.settings.set_string(key, entry.text);
+            });
+            this.settings.connect(`changed::${key}`, () => {
+                const val = this.settings.get_string(key);
+                if (entry.text !== val)
+                    entry.text = val;
             });
             const r = new Adw.ActionRow({ title });
             r.add_suffix(entry);

@@ -73,6 +73,8 @@ export default class KMS extends Extension {
 
     timeout_id = null;
     mods_update_id = null;
+    settings = null;
+    settingsChangedId = null;
 
 
     constructor(metadata) {
@@ -101,22 +103,13 @@ export default class KMS extends Extension {
         this.timeout_id = null;
         this.mods_update_id = null;
 
-        const settings = this.getSettings();
-        MODIFIERS = [
-            [MODIFIER_ENUM.SHIFT, settings.get_string('shift-symbol')],
-            [MODIFIER_ENUM.LOCK, settings.get_string('caps-symbol')],
-            [MODIFIER_ENUM.CONTROL, settings.get_string('control-symbol')],
-            [MODIFIER_ENUM.MOD1, settings.get_string('mod1-symbol')],
-            [MODIFIER_ENUM.MOD2, settings.get_string('mod2-symbol')],
-            [MODIFIER_ENUM.MOD3, settings.get_string('mod3-symbol')],
-            [MODIFIER_ENUM.MOD4, settings.get_string('mod4-symbol')],
-            [MODIFIER_ENUM.MOD5, settings.get_string('mod5-symbol')],
-        ];
-        latch_sym = settings.get_string('latch-symbol');
-        lock_sym = settings.get_string('lock-symbol');
-        icon = settings.get_string('icon');
-        opening = settings.get_string('opening');
-        closing = settings.get_string('closing');
+        this.settings = this.getSettings();
+        this._loadSettings();
+        this.settingsChangedId = this.settings.connect('changed', () => {
+            this._loadSettings();
+            // Force immediate refresh
+            this._update();
+        });
 
         // Create UI elements
         this.button = new St.Bin({ style_class: 'panel-button',
@@ -176,8 +169,33 @@ export default class KMS extends Extension {
 
         this.timeout_id = null;
         this.mods_update_id = null;
+        if (this.settings && this.settingsChangedId) {
+            this.settings.disconnect(this.settingsChangedId);
+        }
+        this.settings = null;
+        this.settingsChangedId = null;
 
         console.debug(`${tag} disable() ... out`);
+    }
+
+    _loadSettings() {
+        if (!this.settings)
+            return;
+        MODIFIERS = [
+            [MODIFIER_ENUM.SHIFT, this.settings.get_string('shift-symbol')],
+            [MODIFIER_ENUM.LOCK, this.settings.get_string('caps-symbol')],
+            [MODIFIER_ENUM.CONTROL, this.settings.get_string('control-symbol')],
+            [MODIFIER_ENUM.MOD1, this.settings.get_string('mod1-symbol')],
+            [MODIFIER_ENUM.MOD2, this.settings.get_string('mod2-symbol')],
+            [MODIFIER_ENUM.MOD3, this.settings.get_string('mod3-symbol')],
+            [MODIFIER_ENUM.MOD4, this.settings.get_string('mod4-symbol')],
+            [MODIFIER_ENUM.MOD5, this.settings.get_string('mod5-symbol')],
+        ];
+        latch_sym = this.settings.get_string('latch-symbol');
+        lock_sym = this.settings.get_string('lock-symbol');
+        icon = this.settings.get_string('icon');
+        opening = this.settings.get_string('opening');
+        closing = this.settings.get_string('closing');
     }
 
     //
