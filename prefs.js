@@ -11,22 +11,26 @@ export default class Prefs extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup({ title: 'Modifier Mapping' });
+        const addMapEntry = (key, title) => {
+            const entry = new Gtk.Entry({ text: this.settings.get_string(key) });
+            entry.connect('changed', () => {
+                this.settings.set_string(key, entry.text);
+            });
+            const row = new Adw.ActionRow({ title });
+            row.add_suffix(entry);
+            row.activatable_widget = entry;
+            group.add(row);
+        };
 
-        const textView = new Gtk.TextView({ monospace: true });
-        const buffer = textView.get_buffer();
-        buffer.text = this.settings.get_strv('modifier-mapping').join('\n');
-        buffer.connect('changed', () => {
-            const text = buffer.text;
-            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-            this.settings.set_strv('modifier-mapping', lines);
-        });
+        addMapEntry('shift-symbol', 'Shift');
+        addMapEntry('caps-symbol', 'Caps Lock');
+        addMapEntry('control-symbol', 'Control');
+        addMapEntry('mod1-symbol', 'Mod1 / Alt');
+        addMapEntry('mod2-symbol', 'Mod2');
+        addMapEntry('mod3-symbol', 'Mod3');
+        addMapEntry('mod4-symbol', 'Mod4 / Super');
+        addMapEntry('mod5-symbol', 'Mod5');
 
-        const scrolled = new Gtk.ScrolledWindow({ hexpand: true, vexpand: true });
-        scrolled.set_child(textView);
-
-        const row = new Adw.ActionRow({ title: 'Mappings' });
-        row.add_suffix(scrolled);
-        group.add(row);
         page.add(group);
 
         const symbols = new Adw.PreferencesGroup({ title: 'Symbols' });
