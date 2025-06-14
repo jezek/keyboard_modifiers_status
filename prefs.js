@@ -29,17 +29,15 @@ export default class Prefs extends ExtensionPreferences {
             group.add(row);
         };
 
-        addMapEntry('shift-symbol', 'Shift');
-        addMapEntry('caps-symbol', 'Caps Lock');
-        addMapEntry('control-symbol', 'Control');
-        addMapEntry('mod1-symbol', 'Mod1 / Alt');
-        addMapEntry('mod2-symbol', 'Mod2');
-        addMapEntry('mod3-symbol', 'Mod3');
-        addMapEntry('mod4-symbol', 'Mod4 / Super');
-        addMapEntry('mod5-symbol', 'Mod5');
+        const schema = this.settings.settings_schema;
+        const defaultsKeys = schema.list_keys().filter(k =>
+            k.endsWith('-symbol') && !['latch-symbol', 'lock-symbol'].includes(k));
 
-        const defaultsKeys = ['shift-symbol', 'caps-symbol', 'control-symbol',
-            'mod1-symbol', 'mod2-symbol', 'mod3-symbol', 'mod4-symbol', 'mod5-symbol'];
+        defaultsKeys.forEach(k => {
+            const summary = schema.get_key(k).get_summary();
+            addMapEntry(k, summary);
+        });
+
         const pcDefaults = ['⇧', '⇪', '⌃', '⎇', '⇭', '⇳', '❖', '⎈'];
         const macDefaults = ['⇧', '⇬', '⋀', '⌥', '①', '◆', '⌘', '⎇'];
 
