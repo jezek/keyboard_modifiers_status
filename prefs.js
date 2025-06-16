@@ -43,25 +43,67 @@ export default class Prefs extends ExtensionPreferences {
             this.addGroupEntry(symbolsGroup, k, schemaKey.get_summary());
         });
 
-        const macDefaults = ['⇧', '⇬', '⋀', '⌥', '①', '◆', '⌘', '⎇'];
-        const pcDefaults = ['⇧', '⇪', '⌃', '⎇', '⇭', '⇳', '❖', '⎈'];
+        const macDefaults = {
+            'shift-symbol': '⇧',
+            'caps-symbol': '⇬',
+            'control-symbol': '⋀',
+            'mod1-symbol': '⌥',
+            'mod2-symbol': '①',
+            'mod3-symbol': '◆',
+            'mod4-symbol': '⌘',
+            'mod5-symbol': '⎇',
+        };
+        const pcDefaults = {
+            'shift-symbol': '⇧',
+            'caps-symbol': '⇪',
+            'control-symbol': '⌃',
+            'mod1-symbol': '⎇',
+            'mod2-symbol': '⇭',
+            'mod3-symbol': '⇳',
+            'mod4-symbol': '❖',
+            'mod5-symbol': '⎈',
+        };
 
-        const resetRow = new Adw.ActionRow({ title: 'Reset to defaults' });
-        const macButton = new Gtk.Button({ label: 'Mac' });
-        const pcButton = new Gtk.Button({ label: 'PC' });
-        const resetModifiers = (defaults) => {
-            modifiersKeys.forEach((k, i) => {
-                if (this.groupEntries[k]) {
-                    this.groupEntries[k].text = defaults[i];
-                    this.settings.set_string(k, defaults[i]);
+        const presetsDropDown = Gtk.DropDown.new_from_strings(['Mac', 'PC', 'Custom']);
+
+        const headerBox = new Gtk.Box({ spacing: 6 });
+        headerBox.append(new Gtk.Label({ label: 'Presets' }));
+        headerBox.append(presetsDropDown);
+        modifiersGroup.set_header_suffix(headerBox);
+
+        const resetModifiers = defaults => {
+            modifiersKeys.forEach(k => {
+                const val = defaults[k];
+                if (val !== undefined && this.groupEntries[k]) {
+                    this.groupEntries[k].text = val;
+                    this.settings.set_string(k, val);
                 }
             });
-        }
-        macButton.connect('clicked', () => resetModifiers(macDefaults));
-        pcButton.connect('clicked', () => resetModifiers(pcDefaults));
-        resetRow.add_suffix(macButton);
-        resetRow.add_suffix(pcButton);
-        modifiersGroup.add(resetRow);
+        };
+
+        presetsDropDown.connect('notify::selected', w => {
+            const idx = w.selected;
+            if (idx === 0) {
+                resetModifiers(macDefaults);
+            } else if (idx === 1) {
+                resetModifiers(pcDefaults);
+            }
+        });
+
+        const updateDropdown = () => {
+            const isMac = modifiersKeys.every(k =>
+                this.settings.get_string(k) === macDefaults[k]);
+            const isPc = modifiersKeys.every(k =>
+                this.settings.get_string(k) === pcDefaults[k]);
+            if (isMac)
+                presetsDropDown.selected = 0;
+            else if (isPc)
+                presetsDropDown.selected = 1;
+            else
+                presetsDropDown.selected = 2;
+        };
+        updateDropdown();
+        this.settings.connect('changed', updateDropdown);
 
         page.add(modifiersGroup);
         page.add(symbolsGroup);
