@@ -12,9 +12,9 @@ export default class Prefs extends ExtensionPreferences {
 		this._settings = this.getSettings();
 		this._schema = this._settings.settings_schema;
 
-		const modifiersKeys = ['shift-symbol', 'caps-symbol', 'control-symbol', 'mod1-symbol', 'mod2-symbol', 'mod3-symbol', 'mod4-symbol', 'mod5-symbol'];
-		const accessibilityKeys = ['latch-symbol', 'lock-symbol'];
-		const wrapperKeys = ['icon', 'opening', 'closing'];
+                const modifiersKeys = ['shift-symbol', 'caps-symbol', 'control-symbol', 'alt-symbol', 'num-symbol', 'scroll-symbol', 'super-symbol', 'altgr-symbol'];
+                const accessibilityKeys = ['latch-symbol', 'lock-symbol'];
+                const wrapperKeys = ['icon-symbol', 'opening-symbol', 'closing-symbol'];
 		this._currentSymbols = this._getSchemaModifierSymbols([].concat(modifiersKeys, accessibilityKeys, wrapperKeys));
 		console.debug(`${tag} this._currentSymbols: ${this._currentSymbols}`);
 

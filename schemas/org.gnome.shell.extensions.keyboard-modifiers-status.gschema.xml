@@ -16,30 +16,30 @@
       <summary>Control symbol</summary>
       <description>Symbol displayed when the Control modifier is active.</description>
     </key>
-    <key name="mod1-symbol" type="s">
+    <key name="alt-symbol" type="s">
       <default>'⌥'</default>
-      <summary>Mod1/Alt symbol</summary>
-      <description>Symbol displayed when the Mod1/Alt modifier is active.</description>
+      <summary>Alt symbol</summary>
+      <description>Symbol displayed when the Alt modifier is active.</description>
     </key>
-    <key name="mod2-symbol" type="s">
+    <key name="num-symbol" type="s">
       <default>'①'</default>
-      <summary>Mod2/Num Lock symbol</summary>
-			<description>Symbol displayed when the Mod2/Num Lock modifier is active.</description>
+      <summary>Num Lock symbol</summary>
+                        <description>Symbol displayed when the Num Lock modifier is active.</description>
     </key>
-    <key name="mod3-symbol" type="s">
+    <key name="scroll-symbol" type="s">
       <default>'◆'</default>
-			<summary>Mod3/Scroll Lock symbol</summary>
-			<description>Symbol displayed when the Mod3/Scroll Lock modifier is active.</description>
+                        <summary>Scroll Lock symbol</summary>
+                        <description>Symbol displayed when the Scroll Lock modifier is active.</description>
     </key>
-    <key name="mod4-symbol" type="s">
+    <key name="super-symbol" type="s">
       <default>'⌘'</default>
-			<summary>Mod4/Super symbol</summary>
-      <description>Symbol displayed when the Mod4/Super modifier is active.</description>
+                        <summary>Super symbol</summary>
+      <description>Symbol displayed when the Super modifier is active.</description>
     </key>
-    <key name="mod5-symbol" type="s">
+    <key name="altgr-symbol" type="s">
       <default>'⎇'</default>
-      <summary>Mod5/AltGr symbol</summary>
-			<description>Symbol displayed when the Mod5/AltGr modifier is active.</description>
+      <summary>AltGr symbol</summary>
+                        <description>Symbol displayed when the AltGr modifier is active.</description>
     </key>
     <key name="latch-symbol" type="s">
       <default>'\''</default>
@@ -51,19 +51,19 @@
       <summary>Lock symbol</summary>
       <description>Symbol displayed when a modifier is locked.</description>
     </key>
-    <key name="icon" type="s">
+    <key name="icon-symbol" type="s">
       <default>''</default>
       <summary>Prefix icon</summary>
       <description>Optional symbol shown before the modifier list.</description>
     </key>
-    <key name="opening" type="s">
+    <key name="opening-symbol" type="s">
       <default>''</default>
-      <summary>Opening text</summary>
+      <summary>Opening symbol</summary>
       <description>String placed before the modifier state display.</description>
     </key>
-    <key name="closing" type="s">
+    <key name="closing-symbol" type="s">
       <default>''</default>
-      <summary>Closing text</summary>
+      <summary>Closing symbol</summary>
       <description>String placed after the modifier state display.</description>
     </key>
   </schema>

@@ -183,17 +183,17 @@ export default class KMS extends Extension {
             [MODIFIER_ENUM.SHIFT, this._settings.get_string('shift-symbol')],
             [MODIFIER_ENUM.LOCK, this._settings.get_string('caps-symbol')],
             [MODIFIER_ENUM.CONTROL, this._settings.get_string('control-symbol')],
-            [MODIFIER_ENUM.MOD1, this._settings.get_string('mod1-symbol')],
-            [MODIFIER_ENUM.MOD2, this._settings.get_string('mod2-symbol')],
-            [MODIFIER_ENUM.MOD3, this._settings.get_string('mod3-symbol')],
-            [MODIFIER_ENUM.MOD4, this._settings.get_string('mod4-symbol')],
-            [MODIFIER_ENUM.MOD5, this._settings.get_string('mod5-symbol')],
+            [MODIFIER_ENUM.MOD1, this._settings.get_string('alt-symbol')],
+            [MODIFIER_ENUM.MOD2, this._settings.get_string('num-symbol')],
+            [MODIFIER_ENUM.MOD3, this._settings.get_string('scroll-symbol')],
+            [MODIFIER_ENUM.MOD4, this._settings.get_string('super-symbol')],
+            [MODIFIER_ENUM.MOD5, this._settings.get_string('altgr-symbol')],
         ];
         this._symLatch = this._settings.get_string('latch-symbol');
         this._symLock = this._settings.get_string('lock-symbol');
-        this._symIcon = this._settings.get_string('icon');
-        this._symOpening = this._settings.get_string('opening');
-        this._symClosing = this._settings.get_string('closing');
+        this._symIcon = this._settings.get_string('icon-symbol');
+        this._symOpening = this._settings.get_string('opening-symbol');
+        this._symClosing = this._settings.get_string('closing-symbol');
 
         console.debug(`${tag} _loadSettings() ... out`);
     }
