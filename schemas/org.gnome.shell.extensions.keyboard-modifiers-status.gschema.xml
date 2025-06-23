@@ -66,5 +66,10 @@
       <summary>Closing symbol</summary>
       <description>String placed after the modifier state display.</description>
     </key>
+    <key name="saved-symbols" type="a{ss}">
+      <default>{}</default>
+      <summary>Saved custom symbols</summary>
+      <description>Symbol values stored when using the Save preset.</description>
+    </key>
   </schema>
 </schemalist>

@@ -1,5 +1,6 @@
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
+import GLib from 'gi://GLib';
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const tag = 'KMS-Ext-Prefs:';
@@ -15,8 +16,10 @@ export default class Prefs extends ExtensionPreferences {
                 const modifiersKeys = ['shift-symbol', 'caps-symbol', 'control-symbol', 'alt-symbol', 'num-symbol', 'scroll-symbol', 'super-symbol', 'altgr-symbol'];
                 const accessibilityKeys = ['latch-symbol', 'lock-symbol'];
                 const wrapperKeys = ['icon-symbol', 'opening-symbol', 'closing-symbol'];
-		this._currentSymbols = this._getSchemaModifierSymbols([].concat(modifiersKeys, accessibilityKeys, wrapperKeys));
-		console.debug(`${tag} this._currentSymbols: ${this._currentSymbols}`);
+                this._currentSymbols = this._getSchemaModifierSymbols([].concat(modifiersKeys, accessibilityKeys, wrapperKeys));
+                this._savedSymbols = this._settings.get_value('saved-symbols').deep_unpack();
+                console.debug(`${tag} this._currentSymbols: ${this._currentSymbols}`);
+                console.debug(`${tag} this._savedSymbols: ${JSON.stringify(this._savedSymbols)}`);
 
 		this._groupEntries = {};
 		this._page = new Adw.PreferencesPage();
@@ -62,62 +65,112 @@ export default class Prefs extends ExtensionPreferences {
 		console.debug(`${tag} _addGroup() ... in`);
 		const group= new Adw.PreferencesGroup({title: title, description: description});
 
-		const dropdownStrings = [_('Custom')].concat(Array.from(presets.keys()));
-		const presetsDropDown = Gtk.DropDown.new_from_strings(dropdownStrings);
-		const headerBox = new Gtk.Box({spacing: 6});
-		headerBox.append(new Gtk.Label({label: _('Presets')}));
-		headerBox.append(presetsDropDown);
-		group.set_header_suffix(headerBox);
-		console.debug(`${tag} _addGroup: added presets dropdown: ${dropdownStrings}`);
+                const dropdownStrings = [_('Custom')].concat(Array.from(presets.keys()), [_('Saved')]);
+                const presetsDropDown = Gtk.DropDown.new_from_strings(dropdownStrings);
+                const headerBox = new Gtk.Box({spacing: 6});
+                headerBox.append(new Gtk.Label({label: _('Presets')}));
+                headerBox.append(presetsDropDown);
+                const saveButton = Gtk.Button.new_with_label(_('Save'));
+                headerBox.append(saveButton);
+                group.set_header_suffix(headerBox);
+                console.debug(`${tag} _addGroup: added presets dropdown: ${dropdownStrings}`);
 
-		const updateDropdown = (dropdownNotifyId) => {
-			console.debug(`${tag} _addGroup: updateDropdown()`);
-			let pid = 0;
-			let found = false;
-			for (let [_title, preset] of presets) {
-				pid = pid + 1;
-				if (keys.every((k, i) => this._currentSymbols[k] === preset[i])) {
-					presetsDropDown.block_signal_handler(dropdownNotifyId);
-					console.debug(`${tag} updateDropdown: set dropdown selected: ${pid}`);
-					presetsDropDown.selected = pid;
-					presetsDropDown.unblock_signal_handler(dropdownNotifyId);
-					found = true;
-					break;
-				}
-			}
+                const savedIndex = presets.size + 1;
+                const refreshSaveButton = () => {
+                        const differ = keys.some(k => this._currentSymbols[k] !== this._savedSymbols[k]);
+                        saveButton.visible = presetsDropDown.selected === 0 && differ;
+                };
 
-			if (!found) {
-				presetsDropDown.block_signal_handler(dropdownNotifyId);
-					console.debug(`${tag} updateDropdown: set dropdown selected: 0`);
-				presetsDropDown.selected = 0;
-				presetsDropDown.unblock_signal_handler(dropdownNotifyId);
-			}
-		};
+                const updateDropdown = (dropdownNotifyId) => {
+                        console.debug(`${tag} _addGroup: updateDropdown()`);
+                        let pid = 0;
+                        let found = false;
+                        for (let [_title, preset] of presets) {
+                                pid = pid + 1;
+                                if (keys.every((k, i) => this._currentSymbols[k] === preset[i])) {
+                                        presetsDropDown.block_signal_handler(dropdownNotifyId);
+                                        console.debug(`${tag} updateDropdown: set dropdown selected: ${pid}`);
+                                        presetsDropDown.selected = pid;
+                                        presetsDropDown.unblock_signal_handler(dropdownNotifyId);
+                                        found = true;
+                                        break;
+                                }
+                        }
 
-		const dropdownNotifyId = presetsDropDown.connect('notify::selected', w => {
-			const idx = w.selected;
-			console.debug(`${tag} presetsDropDown.notify::selected ${idx}`);
-			if (idx > 0) {
-				const preset = Array.from(presets.values())[idx-1];
-				keys.forEach((k, i) => {
-					const val = preset[i];
-					if (val !== undefined && this._groupEntries[k] && this._currentSymbols[k] !== val) {
-						this._currentSymbols[k] = val;
+                        if (!found && keys.every(k => this._savedSymbols[k] !== undefined && this._currentSymbols[k] === this._savedSymbols[k])) {
+                                presetsDropDown.block_signal_handler(dropdownNotifyId);
+                                console.debug(`${tag} updateDropdown: set dropdown selected: ${savedIndex}`);
+                                presetsDropDown.selected = savedIndex;
+                                presetsDropDown.unblock_signal_handler(dropdownNotifyId);
+                                found = true;
+                        }
 
-						const entry = this._groupEntries[k]['entry'];
-						if (entry) {
-							entry.block_signal_handler(this._groupEntries[k]['changedId']);
-							console.debug(`${tag} presetsDropDown.notify: change entry text: (${this._currentSymbols[k]}) = ${entry.text} -> ${val}`);
-							entry.text = val;
-							entry.unblock_signal_handler(this._groupEntries[k]['changedId']);
-						}
+                        if (!found) {
+                                presetsDropDown.block_signal_handler(dropdownNotifyId);
+                                console.debug(`${tag} updateDropdown: set dropdown selected: 0`);
+                                presetsDropDown.selected = 0;
+                                presetsDropDown.unblock_signal_handler(dropdownNotifyId);
+                        }
 
-						console.debug(`${tag} presetsDropDown.notify: setPreset: ${k}(${i}) to "${val}"`);
-						this._settings.set_string(k, val);
-					}
-				});
-			}
-		});
+                        refreshSaveButton();
+                };
+
+                const dropdownNotifyId = presetsDropDown.connect('notify::selected', w => {
+                        const idx = w.selected;
+                        console.debug(`${tag} presetsDropDown.notify::selected ${idx}`);
+                        if (idx === savedIndex) {
+                                keys.forEach(k => {
+                                        const val = this._savedSymbols[k];
+                                        if (val !== undefined && this._groupEntries[k] && this._currentSymbols[k] !== val) {
+                                                this._currentSymbols[k] = val;
+
+                                                const entry = this._groupEntries[k]['entry'];
+                                                if (entry) {
+                                                        entry.block_signal_handler(this._groupEntries[k]['changedId']);
+                                                        console.debug(`${tag} presetsDropDown.notify: change entry text: (${this._currentSymbols[k]}) = ${entry.text} -> ${val}`);
+                                                        entry.text = val;
+                                                        entry.unblock_signal_handler(this._groupEntries[k]['changedId']);
+                                                }
+
+                                                console.debug(`${tag} presetsDropDown.notify: setPreset saved: ${k} -> "${val}"`);
+                                                this._settings.set_string(k, val);
+                                        }
+                                });
+                        } else if (idx > 0) {
+                                const preset = Array.from(presets.values())[idx-1];
+                                keys.forEach((k, i) => {
+                                        const val = preset[i];
+                                        if (val !== undefined && this._groupEntries[k] && this._currentSymbols[k] !== val) {
+                                                this._currentSymbols[k] = val;
+
+                                                const entry = this._groupEntries[k]['entry'];
+                                                if (entry) {
+                                                        entry.block_signal_handler(this._groupEntries[k]['changedId']);
+                                                        console.debug(`${tag} presetsDropDown.notify: change entry text: (${this._currentSymbols[k]}) = ${entry.text} -> ${val}`);
+                                                        entry.text = val;
+                                                        entry.unblock_signal_handler(this._groupEntries[k]['changedId']);
+                                                }
+
+                                                console.debug(`${tag} presetsDropDown.notify: setPreset: ${k}(${i}) to "${val}"`);
+                                                this._settings.set_string(k, val);
+                                        }
+                                });
+                        }
+                        refreshSaveButton();
+                });
+
+                saveButton.connect('clicked', () => {
+                        keys.forEach(k => {
+                                this._savedSymbols[k] = this._currentSymbols[k];
+                        });
+                        this._settings.set_value('saved-symbols', new GLib.Variant('a{ss}', this._savedSymbols));
+                        updateDropdown(dropdownNotifyId);
+                });
+
+                this._settings.connect('changed::saved-symbols', () => {
+                        this._savedSymbols = this._settings.get_value('saved-symbols').deep_unpack();
+                        updateDropdown(dropdownNotifyId);
+                });
 
 		updateDropdown(dropdownNotifyId);
 
@@ -147,9 +200,10 @@ export default class Prefs extends ExtensionPreferences {
 					console.debug(`${tag} _addGroup: entry::changed ${key}: set setings key: ${entry.text}`);
 					this._settings.set_string(key, entry.text);
 
-					updateDropdown(dropdownNotifyId);
-				}
-			});
+                                        updateDropdown(dropdownNotifyId);
+                                        refreshSaveButton();
+                                }
+                        });
 			this._groupEntries[key] = {
 				entry: entry,
 				changedId: entry_changed_id
@@ -167,10 +221,11 @@ export default class Prefs extends ExtensionPreferences {
 					entry.text = val;
 					entry.unblock_signal_handler(entry_changed_id);
 
-					updateDropdown(dropdownNotifyId);
-				}
-				console.debug(`${tag} _addGroup: setting::changed::${key}() ... out`);
-			});
+                                        updateDropdown(dropdownNotifyId);
+                                        refreshSaveButton();
+                                }
+                                console.debug(`${tag} _addGroup: setting::changed::${key}() ... out`);
+                        });
 		});
 
 		this._page.add(group);
