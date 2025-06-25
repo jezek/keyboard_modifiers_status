@@ -80,7 +80,8 @@ export default class Prefs extends ExtensionPreferences {
 		headerBox.append(saveButton);
 		group.set_header_suffix(headerBox);
 
-		const savedIndex = presets.size + 1;
+                const savedIndex = presets.size + 1;
+                let currentPresetIdx = 0;
 		const refreshSaveButton = () => {
 			console.debug(`${tag} refreshSaveButton: selected: ${presetsDropDown.selected}, differ: ${this._currentDifferSaved(keys)}`);
 			saveButton.visible = presetsDropDown.selected === 0 && this._currentDifferSaved(keys);
@@ -96,55 +97,99 @@ export default class Prefs extends ExtensionPreferences {
 				foundIdx = Array.from(presets).findIndex(([_title, preset]) => keys.every((k, i) => this._currentSymbols[k] == preset[i])) + 1;
 			}
 
-			if (presetsDropDown.selected != foundIdx) {
-				presetsDropDown.block_signal_handler(dropdownNotifyId);
-				console.debug(`${tag} updatePresetsBox: set dropdown selected: ${foundIdx}`);
-				presetsDropDown.selected = foundIdx;
-				GLib.idle_add(null, () => {
-					presetsDropDown.unblock_signal_handler(dropdownNotifyId);
-					return GLib.SOURCE_REMOVE;
-				});
-			}
+                        if (presetsDropDown.selected != foundIdx) {
+                                presetsDropDown.block_signal_handler(dropdownNotifyId);
+                                console.debug(`${tag} updatePresetsBox: set dropdown selected: ${foundIdx}`);
+                                presetsDropDown.selected = foundIdx;
+                                GLib.idle_add(null, () => {
+                                        presetsDropDown.unblock_signal_handler(dropdownNotifyId);
+                                        return GLib.SOURCE_REMOVE;
+                                });
+                        }
 
-			refreshSaveButton();
-		};
+                        currentPresetIdx = foundIdx;
+                        refreshSaveButton();
+                };
 
-		const dropdownNotifyId = presetsDropDown.connect('notify::selected', () => {
-			const idx = presetsDropDown.selected;
-			console.debug(`${tag} presetsDropDown.notify::selected ${idx}`);
+                const dropdownNotifyId = presetsDropDown.connect('notify::selected', () => {
+                        const idx = presetsDropDown.selected;
+                        console.debug(`${tag} presetsDropDown.notify::selected ${idx}`);
 
-			if (idx === 0) {
-				updatePresetsBox(dropdownNotifyId);
-				return;
-			}
+                        const applyPreset = () => {
+                                const values = idx === savedIndex
+                                        ? keys.map(k => this._savedSymbols[k] ?? '')
+                                        : Array.from(presets.values())[idx - 1];
 
-			const values = idx === savedIndex
-				? keys.map(k => this._savedSymbols[k] ?? '')
-				: Array.from(presets.values())[idx - 1];
+                                keys.forEach((k, i) => {
+                                        const val = values[i];
+                                        if (this._groupEntries[k] && this._currentSymbols[k] !== val) {
+                                                this._currentSymbols[k] = val;
 
-			keys.forEach((k, i) => {
-				const val = values[i];
-				if (this._groupEntries[k] && this._currentSymbols[k] !== val) {
-					this._currentSymbols[k] = val;
+                                                const { entry, changedId } = this._groupEntries[k];
+                                                if (entry) {
+                                                        entry.block_signal_handler(changedId);
+                                                        console.debug(`${tag} presetsDropDown.notify: change entry text: ${entry.text} -> ${val}`);
+                                                        entry.text = val;
+                                                        GLib.idle_add(null, () => {
+                                                                entry.unblock_signal_handler(changedId);
+                                                                return GLib.SOURCE_REMOVE;
+                                                        });
+                                                }
 
-					const { entry, changedId } = this._groupEntries[k];
-					if (entry) {
-						entry.block_signal_handler(changedId);
-						console.debug(`${tag} presetsDropDown.notify: change entry text: ${entry.text} -> ${val}`);
-						entry.text = val;
-						GLib.idle_add(null, () => {
-							entry.unblock_signal_handler(changedId);
-							return GLib.SOURCE_REMOVE;
-						});
-					}
+                                                console.debug(`${tag} presetsDropDown.notify: set ${k} to ${val}`);
+                                                this._settings.set_string(k, val);
+                                        }
+                                });
 
-					console.debug(`${tag} presetsDropDown.notify: set ${k} to ${val}`);
-					this._settings.set_string(k, val);
-				}
-			});
+                                currentPresetIdx = idx;
+                                refreshSaveButton();
+                        };
 
-			refreshSaveButton();
-		});
+                        if (idx === 0) {
+                                currentPresetIdx = 0;
+                                updatePresetsBox(dropdownNotifyId);
+                                return;
+                        }
+
+                        if (currentPresetIdx === 0 && this._currentDifferSaved(keys)) {
+                                const dialog = new Adw.MessageDialog({
+                                        transient_for: window,
+                                        modal: true,
+                                        heading: _('Unsaved custom symbols'),
+                                        body: _('Switching presets will discard your custom symbols.'),
+                                });
+                                dialog.add_response('cancel', _('Cancel'));
+                                dialog.add_response('save', _('Save'));
+                                dialog.add_response('switch', _('Switch'));
+                                dialog.set_response_appearance('save', Adw.ResponseAppearance.SUGGESTED);
+                                dialog.set_response_appearance('switch', Adw.ResponseAppearance.DESTRUCTIVE);
+                                dialog.set_default_response('cancel');
+                                dialog.set_close_response('cancel');
+                                dialog.connect('response', (d, resp) => {
+                                        d.destroy();
+                                        if (resp === 'cancel') {
+                                                presetsDropDown.block_signal_handler(dropdownNotifyId);
+                                                presetsDropDown.selected = currentPresetIdx;
+                                                GLib.idle_add(null, () => {
+                                                        presetsDropDown.unblock_signal_handler(dropdownNotifyId);
+                                                        return GLib.SOURCE_REMOVE;
+                                                });
+                                        } else {
+                                                if (resp === 'save') {
+                                                        keys.forEach(k => {
+                                                                this._savedSymbols[k] = this._currentSymbols[k];
+                                                        });
+                                                        this._settings.set_value('saved-symbols', new GLib.Variant('a{ss}', this._savedSymbols));
+                                                }
+                                                applyPreset();
+                                        }
+                                });
+                                dialog.show();
+                                return;
+                        }
+
+                        applyPreset();
+                });
 
 		saveButton.connect('clicked', () => {
 			console.debug(`${tag} saveButton:clicked`);
