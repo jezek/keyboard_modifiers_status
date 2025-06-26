@@ -3,28 +3,35 @@ import Adw from 'gi://Adw';
 import GLib from 'gi://GLib';
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
+// Preferences dialog for the Keyboard Modifiers Status extension.  It exposes
+// customizable symbols grouped into Modifier, Accessibility and Wrapper
+// categories.
+
 const tag = 'KMS-Ext-Prefs:';
 
 export default class Prefs extends ExtensionPreferences {
 
-	fillPreferencesWindow(window) {
-		console.debug(`${tag} fillPreferencesWindow() ... in`);
+        fillPreferencesWindow(window) {
+                console.debug(`${tag} fillPreferencesWindow() ... in`);
 
 		this._settings = this.getSettings();
 		this._schema = this._settings.settings_schema;
 		this._window = window;
 
-		const modifiersKeys = ['shift-symbol', 'caps-symbol', 'control-symbol', 'alt-symbol', 'num-symbol', 'scroll-symbol', 'super-symbol', 'altgr-symbol'];
-		const accessibilityKeys = ['latch-symbol', 'lock-symbol'];
-		const wrapperKeys = ['icon-symbol', 'opening-symbol', 'closing-symbol'];
+                // Keys grouped by their meaning in the settings schema.
+                const modifiersKeys = ['shift-symbol', 'caps-symbol', 'control-symbol', 'alt-symbol', 'num-symbol', 'scroll-symbol', 'super-symbol', 'altgr-symbol'];
+                const accessibilityKeys = ['latch-symbol', 'lock-symbol'];
+                const wrapperKeys = ['icon-symbol', 'opening-symbol', 'closing-symbol'];
 
-		this._currentSymbols = this._getSchemaModifierSymbols([].concat(modifiersKeys, accessibilityKeys, wrapperKeys));
-		this._savedSymbols = this._settings.get_value('saved-symbols').deep_unpack();
+                // Cache current values from GSettings and previously saved preset.
+                this._currentSymbols = this._getSchemaModifierSymbols([].concat(modifiersKeys, accessibilityKeys, wrapperKeys));
+                this._savedSymbols = this._settings.get_value('saved-symbols').deep_unpack();
 		console.debug(`${tag} this._currentSymbols: ${JSON.stringify(this._currentSymbols)}`);
 		console.debug(`${tag} this._savedSymbols: ${JSON.stringify(this._savedSymbols)}`);
 
-		this._groupEntries = {};
-		this._page = new Adw.PreferencesPage();
+                // Keep references to entry widgets for each key to sync changes.
+                this._groupEntries = {};
+                this._page = new Adw.PreferencesPage();
 
 
 		this._addGroup(
@@ -63,19 +70,24 @@ export default class Prefs extends ExtensionPreferences {
 		console.debug(`${tag} fillPreferencesWindow() ... out`);
 	}
 
-	_currentDifferSaved(keys) {return keys.some(k => this._currentSymbols[k] !== (this._savedSymbols[k] ?? ''));};
+        // Returns true when the current values diverge from the last saved preset.
+        _currentDifferSaved(keys) {
+                return keys.some(k => this._currentSymbols[k] !== (this._savedSymbols[k] ?? ''));
+        }
 
-	_addGroup(title, description, keys, presets) {
-		console.debug(`${tag} _addGroup() ... in`);
+        // Helper to build a preference group with a presets drop-down and entry fields.
+        _addGroup(title, description, keys, presets) {
+                console.debug(`${tag} _addGroup() ... in`);
 		const group = new Adw.PreferencesGroup({title: title, description: description});
 
 		const headerBox = new Gtk.Box({spacing: 6});
 		const presetsDropDown = Gtk.DropDown.new_from_strings([_('Custom')].concat(Array.from(presets.keys()), [_('Saved')]));
 		presetsDropDown.valign = Gtk.Align.CENTER;
-		const saveButton = Gtk.Button.new_with_label(_('Save'));
-		saveButton.add_css_class('suggested-action');
-		saveButton.valign      = Gtk.Align.CENTER;
-		saveButton.visible = false;
+                // Allows persisting the current custom symbols.
+                const saveButton = Gtk.Button.new_with_label(_('Save'));
+                saveButton.add_css_class('suggested-action');
+                saveButton.valign      = Gtk.Align.CENTER;
+                saveButton.visible = false;
 		headerBox.append(new Gtk.Label({label: _('Presets')}));
 		headerBox.append(presetsDropDown);
 		headerBox.append(saveButton);
@@ -275,15 +287,16 @@ export default class Prefs extends ExtensionPreferences {
 		console.debug(`${tag} _addGroup() ... out`);
 	}
 
-	_getSchemaDefaults(keys) {
-		return keys.map(k => this._settings.get_default_value(k).deep_unpack());
-	};
-	_getSchemaModifierSymbols(keys) {
-		return Object.fromEntries(keys.map(k => [k, this._settings.get_string(k)]));
-	};
-	_symbolsObjectsEqual(a, b) {
-		return Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(k => (b[k] ?? '') === (a[k] ?? ''));
-	}
+        // Convenience helpers for manipulating GSettings values.
+        _getSchemaDefaults(keys) {
+                return keys.map(k => this._settings.get_default_value(k).deep_unpack());
+        }
+        _getSchemaModifierSymbols(keys) {
+                return Object.fromEntries(keys.map(k => [k, this._settings.get_string(k)]));
+        }
+        _symbolsObjectsEqual(a, b) {
+                return Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(k => (b[k] ?? '') === (a[k] ?? ''));
+        }
 }
 
 export function init() {

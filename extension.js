@@ -21,6 +21,10 @@ import St from 'gi://St';
 import Clutter from 'gi://Clutter';
 import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
 
+// This extension displays the currently active keyboard modifiers in the panel.
+// Modifier and wrapper symbols are configurable through GSettings and the
+// provided preferences dialog.
+
 //
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import GLib from 'gi://GLib';
@@ -35,15 +39,18 @@ import GIRepository from 'gi://GIRepository';
 console.debug(`${tag} Shell version: ${Config.PACKAGE_VERSION}`);
 console.debug(`${tag} Clutter API: ${GIRepository.Repository.get_default().get_version('Clutter')}`);  
 
+// Mapping of logical modifier names to the Clutter.ModifierType constants used
+// by GNOME Shell. These values are stable across versions and avoid relying on
+// internal bit ordering.
 const MODIFIER_ENUM = {
-    SHIFT: Clutter.ModifierType.SHIFT_MASK,
-    LOCK: Clutter.ModifierType.LOCK_MASK,
+    SHIFT:   Clutter.ModifierType.SHIFT_MASK,
+    LOCK:    Clutter.ModifierType.LOCK_MASK,
     CONTROL: Clutter.ModifierType.CONTROL_MASK,
-    MOD1: Clutter.ModifierType.MOD1_MASK,
-    MOD2: Clutter.ModifierType.MOD2_MASK,
-    MOD3: Clutter.ModifierType.MOD3_MASK,
-    MOD4: Clutter.ModifierType.MOD4_MASK,
-    MOD5: Clutter.ModifierType.MOD5_MASK,
+    MOD1:    Clutter.ModifierType.MOD1_MASK,
+    MOD2:    Clutter.ModifierType.MOD2_MASK,
+    MOD3:    Clutter.ModifierType.MOD3_MASK,
+    MOD4:    Clutter.ModifierType.MOD4_MASK,
+    MOD5:    Clutter.ModifierType.MOD5_MASK,
 };
 
 // Gnome-shell extension interface
@@ -60,6 +67,7 @@ export default class KMS extends Extension {
     enable() {
         console.debug(`${tag} enable() ... in`);
 
+        // Last retrieved modifier state and previous values for change tracking.
         this._state = 0;
         this._prev_state = null;
         this._latch = 0;
@@ -67,31 +75,28 @@ export default class KMS extends Extension {
         this._lock = 0;
         this._prev_lock = null;
 
+        // Symbols read from settings describing each modifier and extra wrapper
+        // characters.
         this._symModifiers = [];
         this._symLatch = '';
         this._symLock = '';
-        this._symIcon = ''; //'⌨ ';
-        this._symOpening = ''; //'_';
-        this._symClosing = ''; //'_';
+        this._symIcon = '';  // prefix symbol
+        this._symOpening = '';
+        this._symClosing = '';
 
 
+        // GSettings object for retrieving user preferences.
         this._settings = this.getSettings();
         this._loadSettings();
+        // Reload symbols whenever preferences change.
         this._settingsChangedId = this._settings.connect('changed', () => {
             this._loadSettings();
             // Force indicator refresh on next _update (every 200ms).
             this._prev_state = null;
         });
 
-        this.settings = this.getSettings();
-        this._loadSettings();
-        this.settingsChangedId = this.settings.connect('changed', () => {
-            this._loadSettings();
-            // Force indicator refresh on next _update (every 200ms).
-            this.prev_state = null;
-        });
 
-        // Create UI elements
+        // Create the indicator displayed in the top panel.
         this._indicator = new St.Bin({ style_class: 'panel-button',
             reactive: false,
             can_focus: false,
@@ -106,21 +111,28 @@ export default class KMS extends Extension {
         //console.debug(`${tag} Running Wayland: ` + Meta.is_wayland_compositor());
 
         try {
+            // Clutter 1.24+ exposes the default seat via the backend object.
             this._seat = Clutter.get_default_backend().get_default_seat();
         } catch (e) {
+            // Older versions fall back to DeviceManager.
             this._seat = Clutter.DeviceManager.get_default();
-        };
+        }
 
         if (this._seat) {
-            this._mods_update_id = this._seat.connect('kbd-a11y-mods-state-changed', this._a11y_mods_update.bind(this));
-        };
+            // Listen for changes from the "sticky keys" accessibility feature.
+            this._mods_update_id = this._seat.connect('kbd-a11y-mods-state-changed',
+                this._a11y_mods_update.bind(this));
+        }
 
-        this._timeout_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, this._update.bind(this));
+        // Periodically refresh the indicator (200ms).
+        this._timeout_id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200,
+            this._update.bind(this));
 
         console.debug(`${tag} enable() ... out`);
     }
 
 
+    // Tear down everything created in enable().
     disable() {
         console.debug(`${tag} disable() ... in`);
 
@@ -171,6 +183,7 @@ export default class KMS extends Extension {
         console.debug(`${tag} disable() ... out`);
     }
 
+    // Read all user-configurable symbols from GSettings.
     _loadSettings() {
         console.debug(`${tag} _loadSettings() ... in`);
 
@@ -202,6 +215,7 @@ export default class KMS extends Extension {
     }
 
     //
+    // Called periodically to refresh the label with the current modifier state.
     _update() {
         console.debug(`${tag} _update() ... in`);
         // `global` is provided by GNOME Shell and exposes Meta.Display APIs.
@@ -212,7 +226,7 @@ export default class KMS extends Extension {
         // Not the case, using Gdk.Keymap.get_default().get_modifier_state() which
         // is the effective
 
-        const [x, y, m] = global.get_pointer();
+        const [x, y, m] = global.get_pointer(); // current pointer position and modifier mask
 
         if (typeof m !== 'undefined') {
             this._state = m;
@@ -223,8 +237,10 @@ export default class KMS extends Extension {
             this._indicatorText = this._symIcon + this._symOpening;
             // Iterate using the predefined modifier masks
             for (const [mask, sym] of this._symModifiers) {
+                // Display the symbol whenever the modifier is active, latched or locked.
                 if ((this._state & mask) || (this._latch & mask) || (this._lock & mask))
                     this._indicatorText += sym;
+                // Append latch/lock indicators if necessary.
                 if (this._latch & mask)
                     this._indicatorText += this._symLatch;
                 if (this._lock & mask)
@@ -245,7 +261,8 @@ export default class KMS extends Extension {
     }
 
 
-    // The callback receives the Clutter.Seat that emitted the signal and the latched and locked modifier mask from stickykeys.
+    // Callback for the 'kbd-a11y-mods-state-changed' signal emitted by Clutter.Seat.
+    // Updates stored latch and lock states used by the indicator.
     _a11y_mods_update(_seat, latch_new, lock_new) {
         console.debug(`${tag} _a11y_mods_update() ... in`);
         if (typeof latch_new !== 'undefined') {
