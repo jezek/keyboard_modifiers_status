@@ -159,14 +159,37 @@ export default class Prefs extends ExtensionPreferences {
 				refreshSaveButton();
 			};
 
-			if (currentPresetIdx === 0 && this._currentDifferSaved(keys)) {
-				console.debug(`${tag} presetsDropDown.notify::selected: message dialog`);
-				const dialog = new Adw.MessageDialog({
-					transient_for: this._window,
-					modal: true,
-					heading: _('Unsaved custom symbols'),
-					body: _('Switching presets will discard your custom symbols.'),
-				});
+                        if (currentPresetIdx === 0 && this._currentDifferSaved(keys)) {
+                                console.debug(`${tag} presetsDropDown.notify::selected: message dialog`);
+
+                                const dialog = new Adw.MessageDialog({
+                                        transient_for: this._window,
+                                        modal: true,
+                                        heading: _('Unsaved custom symbols'),
+                                        body: _('Switching presets will discard your custom symbols.'),
+                                });
+
+                                // Show table of differing values between current custom
+                                // symbols and the last saved preset.
+                                const grid = new Gtk.Grid({column_spacing: 12, row_spacing: 6});
+                                const headers = [_('Symbols'), _('Custom'), _('Saved')];
+                                headers.forEach((h, i) => {
+                                        grid.attach(new Gtk.Label({label: h, halign: Gtk.Align.START}), i, 0, 1, 1);
+                                });
+                                let row = 1;
+                                keys.forEach(k => {
+                                        const custom = this._currentSymbols[k] ?? '';
+                                        const saved = this._savedSymbols[k] ?? '';
+                                        if (custom !== saved) {
+                                                const title = _(this._schema.get_key(k).get_summary());
+                                                grid.attach(new Gtk.Label({label: title, halign: Gtk.Align.START}), 0, row, 1, 1);
+                                                grid.attach(new Gtk.Label({label: custom, halign: Gtk.Align.START}), 1, row, 1, 1);
+                                                grid.attach(new Gtk.Label({label: saved, halign: Gtk.Align.START}), 2, row, 1, 1);
+                                                row++;
+                                        }
+                                });
+                                if (row > 1)
+                                        dialog.set_extra_child(grid);
 				dialog.add_response('cancel', _('Cancel'));
 				dialog.add_response('save', _('Save'));
 				dialog.add_response('switch', _('Switch'));
