@@ -171,11 +171,25 @@ export default class Prefs extends ExtensionPreferences {
 
 				// Show table of differing values between current custom
 				// symbols and the last saved preset.
-				const grid = new Gtk.Grid({column_spacing: 12, row_spacing: 6});
+				const grid = new Gtk.Grid({
+					column_spacing: 12,
+					row_spacing: 12,
+					halign: Gtk.Align.CENTER,
+					hexpand: true,
+					margin_top: 12,
+					margin_bottom: 12,
+					margin_start: 12,
+					margin_end: 12,
+				});
 				//const headers = [_('Symbols'), _('Custom'), _('Saved')];
 				const headers = [title, _('Custom'), _('Saved')];
 				headers.forEach((h, i) => {
-					grid.attach(new Gtk.Label({label: h, halign: Gtk.Align.CENTER}), i, 0, 1, 1);
+					grid.attach(new Gtk.Label({
+						label: `<b>${h}</b>`,
+						use_markup: true,
+						halign: Gtk.Align.CENTER,
+						hexpand: true,
+					}), i, 0, 1, 1);
 				});
 				let row = 1;
 				keys.forEach(k => {
@@ -185,7 +199,13 @@ export default class Prefs extends ExtensionPreferences {
 						const cells = [_(this._schema.get_key(k).get_summary()), current, saved];
 						cells.forEach((v, i) => {
 							const halign = i === 0 ? Gtk.Align.START : Gtk.Align.CENTER;
-							grid.attach(new Gtk.Label({label: v, halign: halign}), i, row, 1, 1);
+							grid.attach(new Gtk.Label({
+								label: i === 0 ? `<b>${v}</b>` : v,
+								use_markup: i === 0,
+								halign: halign,
+								hexpand: true,
+								width_chars: 12,
+							}), i, row, 1, 1);
 						});
 						row++;
 					}
